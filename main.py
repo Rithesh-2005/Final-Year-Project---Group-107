@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from core.rag_alias import expand_alias, initialize_knowledge_base
 from core.nlp_schema import generate_workflow_schema
+from core.schema_validation import validate_dag_schema
 from orchestration.prefect_engine import run_dynamic_dag
 
 app = FastAPI(title="Intelligent Workflow Orchestration Framework")
@@ -20,9 +21,11 @@ def execute_workflow(request: WorkflowRequest):
     # Step 2: NLP Schema Generation
     schema = generate_workflow_schema(expanded_instruction)
     
-    # Step 3: DAG Execution via Prefect
-    if "error" not in schema:
-        execution_results = run_dynamic_dag(schema)
-        return {"status": "success", "schema": schema, "results": execution_results}
+    # 2. Validate Schema (The Safety Net!)
+    validated_schema = validate_dag_schema(raw_schema)
+
+    # 3. Execute
+    if "error" not in validated_schema:
+        run_dynamic_dag(validated_schema)
     else:
-        return {"status": "failed", "error": schema["error"]}
+        print(f"VALIDATION FAILED: {validated_schema['error']}")
