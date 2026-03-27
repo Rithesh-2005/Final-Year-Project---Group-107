@@ -1,47 +1,55 @@
+import os
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
-# Initialize local embeddings
+# Use lightweight local embeddings for the Vector DB
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 db_dir = "./data/vector_db"
 
-def initialize_knowledge_base():
-    """Populates ChromaDB with SOPs, Workflow Definitions, and Tech Docs."""
+# Global variable to hold the vector store instance
+_vectorstore = None
+
+def setup_rag():
+    """
+    Populates ChromaDB with workflow Standard Operating Procedures (SOPs).
+    This gives the LLM the exact context needed to generate accurate DAGs.
+    """
+    global _vectorstore
     
-    documents = [
-        # 1. Standard Operating Procedures (SOPs)
+    docs = [
         Document(
-            page_content="Alias: SALES-DAILY-9AM. Description: Extract daily sales records from PostgreSQL, process the data to calculate total revenue, and email the summary report to the sales team.", 
-            metadata={"category": "SOP", "department": "Sales"}
+            page_content="Alias: SALES-DAILY-9AM. Task: Extract daily sales records from PostgreSQL, process the data to calculate total revenue, and email the summary report to the sales team.",
+            metadata={"type": "alias", "department": "Sales"}
         ),
         Document(
-            page_content="Alias: DB-BACKUP-WEEKLY. Description: Connect to the production database, compress the tables into a gzip file, and upload the backup to the AWS S3 archive bucket.", 
-            metadata={"category": "SOP", "department": "IT"}
-        ),
-        
-        # 2. Existing Workflow Definitions (giving the LLM structural hints)
-        Document(
-            page_content="Workflow Template for DB-BACKUP: Tasks should include 'connect_db', 'compress_data', and 'upload_to_s3'. 'compress_data' depends on 'connect_db'. 'upload_to_s3' depends on 'compress_data'.", 
-            metadata={"category": "Workflow_Definition"}
-        ),
-        
-        # 3. Technical Documentation (available Prefect tools/actions)
-        Document(
-            page_content="Tool: email_report. Parameters required: 'recipient_email', 'subject', 'body'. Use this action whenever a user asks to notify a team via email.", 
-            metadata={"category": "Tech_Doc", "tool": "email"}
+            page_content="Alias: DB-BACKUP. Task: Connect to production database, compress data into gzip, and upload backup to AWS S3.",
+            metadata={"type": "alias", "department": "IT"}
         ),
         Document(
-            page_content="Tool: process_data. This task takes raw extracted data and aggregates it. It must always be preceded by an 'extract' task.", 
-            metadata={"category": "Tech_Doc", "tool": "data_processing"}
+            page_content="Workflow Template: When processing data, it must always depend on an 'extract' or 'fetch' task. When sending an email or notification, it must depend on the processing task.",
+            metadata={"type": "rule"}
         )
     ]
     
-    # Load into ChromaDB and persist to disk
-    vectorstore = Chroma.from_documents(
-        documents=documents, 
-        embedding=embeddings, 
-        persist_directory=db_dir
-    )
-    print(f"Successfully loaded {len(documents)} documents into the RAG Knowledge Base.")
-    return vectorstore
+    # Initialize and persist the database
+    os.makedirs("./data", exist_ok=True)
+    _vectorstore = Chroma.from_documents(documents=docs, embedding=embeddings, persist_directory=db_dir)
+    return _vectorstore
+
+def expand_alias(user_input: str) -> str:
+    """
+    Searches the vector DB to expand shorthand aliases into full instructions.
+    """
+    global _vectorstore
+    if _vectorstore is None:
+        # Fallback initialization if not already set up
+        _vectorstore = Chroma(persist_directory=db_dir, embedding_function=embeddings)
+        
+    results = _vectorstore.similarity_search(user_input, k=1)
+    
+    if results:
+        # Return the expanded contextual instruction
+        return f"User Intent: {user_input}\nContextual Expansion: {results[0].page_content}"
+    
+    return user_input # Return original if no close match is found

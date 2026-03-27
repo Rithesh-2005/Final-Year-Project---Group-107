@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Workflow Orchestrator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex flex-col">
+
+    <nav class="bg-indigo-700 text-white p-4 shadow-md flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-network-wired text-xl"></i>
+            <h1 class="text-xl font-bold">Intent-to-DAG Orchestrator</h1>
+        </div>
+        <span class="bg-indigo-900 px-3 py-1 rounded-full text-xs font-semibold tracking-wide">LLM + RAG + Prefect</span>
+    </nav>
+
+    <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6 mt-4">
+        
+        <div class="w-full md:w-1/3 bg-white rounded-xl shadow-lg flex flex-col overflow-hidden border border-gray-200">
+            <div class="bg-gray-50 p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800"><i class="fas fa-robot text-indigo-600 mr-2"></i>AI Assistant</h2>
+                <p class="text-xs text-gray-500">Enter a natural language command or alias to begin.</p>
+            </div>
+            
+            <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4 bg-gray-50 h-96">
+                <div class="flex items-start">
+                    <div class="bg-indigo-100 text-indigo-800 p-3 rounded-lg rounded-tl-none max-w-[85%] text-sm shadow-sm">
+                        Hello! I am your Intelligent Orchestrator. What workflow would you like to run today? (e.g., "Run SALES-DAILY-9AM")
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-white border-t border-gray-200">
+                <div class="flex space-x-2">
+                    <input type="text" id="userInput" class="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Type your instruction here...">
+                    <button onclick="sendCommand()" id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full md:w-2/3 flex flex-col gap-6">
+            
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col h-1/2">
+                <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-gray-800"><i class="fas fa-code text-indigo-600 mr-2"></i>Validated DAG Schema (JSON)</h2>
+                    <span id="schemaBadge" class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600">Awaiting Input</span>
+                </div>
+                <div class="p-4 bg-gray-900 flex-grow overflow-auto rounded-b-xl">
+                    <pre id="schemaOutput" class="text-green-400 text-sm font-mono whitespace-pre-wrap">Waiting for AI generation...</pre>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col h-1/2">
+                <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-gray-800"><i class="fas fa-server text-indigo-600 mr-2"></i>Prefect Execution Engine</h2>
+                </div>
+                <div class="p-4 bg-gray-100 flex-grow overflow-auto rounded-b-xl">
+                    <pre id="executionOutput" class="text-gray-700 text-sm font-mono whitespace-pre-wrap">System idle...</pre>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const userInput = document.getElementById('userInput');
+        const chatHistory = document.getElementById('chatHistory');
+        const schemaOutput = document.getElementById('schemaOutput');
+        const executionOutput = document.getElementById('executionOutput');
+        const schemaBadge = document.getElementById('schemaBadge');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Allow 'Enter' key to send message
+        userInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendCommand();
+            }
+        });
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = sender === 'user' ? 'flex items-end justify-end' : 'flex items-start';
+            
+            const innerDiv = document.createElement('div');
+            if (sender === 'user') {
+                innerDiv.className = 'bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none max-w-[85%] text-sm shadow-md';
+            } else {
+                innerDiv.className = 'bg-indigo-100 text-indigo-800 p-3 rounded-lg rounded-tl-none max-w-[85%] text-sm shadow-sm';
+            }
+            innerDiv.textContent = text;
+            
+            msgDiv.appendChild(innerDiv);
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+        }
+
+        async function sendCommand() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Update UI: User message
+            appendMessage('user', text);
+            userInput.value = '';
+            
+            // Disable input while processing
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            appendMessage('bot', 'Processing intent, applying RAG context, and validating schema...');
+            
+            schemaOutput.textContent = "Loading...";
+            schemaBadge.className = "px-2 py-1 text-xs rounded bg-yellow-200 text-yellow-800";
+            schemaBadge.textContent = "Validating";
+            executionOutput.textContent = "Waiting for valid schema...";
+
+            try {
+                const response = await fetch('/api/orchestrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instruction: text })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === "success") {
+                    appendMessage('bot', data.message);
+                    
+                    // Display Schema
+                    schemaOutput.textContent = JSON.stringify(data.schema, null, 2);
+                    schemaBadge.className = "px-2 py-1 text-xs rounded bg-green-200 text-green-800";
+                    schemaBadge.textContent = "Valid";
+
+                    // Display Results
+                    executionOutput.textContent = "EXECUTION SUCCESSFUL\n\nLogs:\n" + JSON.stringify(data.results, null, 2);
+                } else {
+                    appendMessage('bot', 'Error: ' + (data.message || 'Workflow execution failed.'));
+                    
+                    schemaOutput.textContent = JSON.stringify(data.schema || {}, null, 2);
+                    schemaOutput.classList.replace("text-green-400", "text-red-400");
+                    
+                    schemaBadge.className = "px-2 py-1 text-xs rounded bg-red-200 text-red-800";
+                    schemaBadge.textContent = "Validation Failed";
+                    
+                    executionOutput.textContent = "EXECUTION BLOCKED.\nReason: " + (data.error_details || data.detail);
+                }
+            } catch (error) {
+                appendMessage('bot', 'System Error: Could not connect to backend API.');
+                schemaOutput.textContent = "Connection Error.";
+                executionOutput.textContent = error.message;
+            } finally {
+                // Re-enable input
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+    </script>
+</body>
+</html>

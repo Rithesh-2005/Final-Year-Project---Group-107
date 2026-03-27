@@ -1,31 +1,46 @@
-from prefect import flow, task
 import time
+from prefect import flow, task
 
-@task(retries=2)
-def execute_action(action: str):
-    """Simulates executing a single task."""
-    print(f"Executing: {action}")
-    time.sleep(2) # Simulate work
-    return f"Completed: {action}"
+# Define a generic Prefect task with automatic retries for resilience
+@task(retries=1, retry_delay_seconds=2)
+def execute_action(action: str, task_id: str):
+    """
+    Simulates executing a single node (task) in the Directed Acyclic Graph.
+    In a fully integrated enterprise system, this would map to actual Python functions or API calls.
+    """
+    print(f"[{task_id}] Executing action: {action}...")
+    
+    # Simulate processing time
+    time.sleep(1.5) 
+    
+    return f"Success: {action} completed."
 
-@flow(name="Dynamic-LLM-Workflow")
-def run_dynamic_dag(schema: dict):
-    """Executes the DAG based on the generated schema."""
-    if "error" in schema:
-        print("Invalid schema, aborting execution.")
-        return
+@flow(name="Dynamic-DAG-Execution", log_prints=True)
+def run_prefect_dag(schema: dict):
+    """
+    Dynamically orchestrates the workflow based on the validated JSON schema.
+    """
+    workflow_name = schema.get('workflow_name', 'Unnamed_Workflow')
+    print(f"\n🚀 Initiating Orchestration for: {workflow_name}")
     
-    print(f"Starting Workflow: {schema.get('workflow_name', 'Unnamed')}")
-    task_results = {}
+    results = {}
     
-    # Simplified execution: loops through tasks and executes them. 
-    # (For true parallel DAG execution in Prefect, you would map task futures).
+    # In a true asynchronous Prefect environment, we would use Future mapping 
+    # to execute tasks in parallel based on `depends_on`. 
+    # For this synchronous demonstration, we iterate through the validated tasks.
     for task_data in schema.get('tasks', []):
-        task_id = task_data['task_id']
+        t_id = task_data['task_id']
         action = task_data['action']
+        deps = task_data.get('depends_on', [])
         
-        # Execute task
-        result = execute_action(action)
-        task_results[task_id] = result
+        if deps:
+            print(f"[{t_id}] Dependencies met: {deps}. Triggering task.")
+        else:
+            print(f"[{t_id}] No dependencies. Triggering initial task.")
+            
+        # Execute the task
+        res = execute_action(action=action, task_id=t_id)
+        results[t_id] = res
         
-    return task_results
+    print(f"✅ Workflow '{workflow_name}' execution completed successfully!\n")
+    return results
