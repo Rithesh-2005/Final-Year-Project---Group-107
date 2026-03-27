@@ -7,7 +7,8 @@ from fastapi.responses import FileResponse
 from core.rag_alias import setup_rag, expand_alias
 from core.nlp_schema import generate_schema_with_gemini, validate_schema
 from orchestration.prefect_engine import run_prefect_dag
-
+from dotenv import load_dotenv
+load_dotenv()
 app = FastAPI(title="Intelligent Workflow Orchestrator")
 
 # 1. Initialize Vector DB on startup
