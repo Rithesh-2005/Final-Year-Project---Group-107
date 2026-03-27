@@ -65,11 +65,19 @@ async def orchestrate_workflow(request: ChatRequest):
                 "schema": raw_schema
             }
             
+        # ... (Steps 1, 2, and 3 remain the same) ...
+
         # Step 4: DAG Execution via Prefect
-        execution_results = run_prefect_dag(validated_schema)
+        # Slice the instruction to 40 characters so the UI stays clean
+        short_name = request.instruction[:40] + "..." if len(request.instruction) > 40 else request.instruction
+        
+        # Pass the short name into the flow
+        execution_results = run_prefect_dag(validated_schema, prompt_name=short_name)
         
         # --- Handle Success ---
         success_msg = "Execution Successful"
+        
+        # ... (Rest of your logging and return statements remain the same) ...
         
         # LOG THE SUCCESS
         log_execution(
