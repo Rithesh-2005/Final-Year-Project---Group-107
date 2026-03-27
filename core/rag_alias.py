@@ -39,17 +39,21 @@ def setup_rag():
 
 def expand_alias(user_input: str) -> str:
     """
-    Searches the vector DB to expand shorthand aliases into full instructions.
+    Searches the vector DB to expand shorthand aliases.
+    Bypasses RAG if the input is a detailed, custom ad-hoc command.
     """
     global _vectorstore
     if _vectorstore is None:
-        # Fallback initialization if not already set up
         _vectorstore = Chroma(persist_directory=db_dir, embedding_function=embeddings)
         
+    # LOGIC FIX: If the input is long (e.g., > 5 words), it's a custom instruction. 
+    # Do not force an unrelated SOP onto it!
+    if len(user_input.split()) > 5:
+        return f"User Intent: {user_input}\nContextual Expansion: None (Execute as custom ad-hoc workflow)"
+
     results = _vectorstore.similarity_search(user_input, k=1)
     
     if results:
-        # Return the expanded contextual instruction
         return f"User Intent: {user_input}\nContextual Expansion: {results[0].page_content}"
     
-    return user_input # Return original if no close match is found
+    return user_input

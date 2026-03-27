@@ -1,0 +1,26 @@
+# --- Environment Variables (CRITICAL) ---
+.env
+
+# --- Python Virtual Environments ---
+venv/
+env/
+.venv/
+
+# --- Local Databases & Storage ---
+# Prevents uploading your local SQLite audit logs
+data/*.db
+*.db
+*.sqlite3
+
+# Prevents uploading the heavy ChromaDB vector database
+data/vector_db/
+vector_db/
+
+# --- Python Cache Files ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- OS Generated Files ---
+.DS_Store
+Thumbs.db

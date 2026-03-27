@@ -3,67 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Workflow Orchestrator</title>
+    <title>AI Workflow Orchestrator | Final Year Project</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen flex flex-col">
 
     <nav class="bg-indigo-700 text-white p-4 shadow-md flex justify-between items-center">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
             <i class="fas fa-network-wired text-xl"></i>
-            <h1 class="text-xl font-bold">Intent-to-DAG Orchestrator</h1>
+            <h1 class="text-xl font-bold tracking-wide">Intent-to-DAG Orchestrator</h1>
         </div>
-        <span class="bg-indigo-900 px-3 py-1 rounded-full text-xs font-semibold tracking-wide">LLM + RAG + Prefect</span>
+        <div class="space-x-2">
+            <span class="bg-indigo-900 border border-indigo-500 px-3 py-1 rounded-full text-xs font-semibold">SQLite Audit Log Active</span>
+        </div>
     </nav>
 
-    <main class="flex-grow container mx-auto p-4 flex flex-col md:flex-row gap-6 mt-4">
+    <main class="flex-grow container mx-auto p-4 flex flex-col gap-6 mt-4">
         
-        <div class="w-full md:w-1/3 bg-white rounded-xl shadow-lg flex flex-col overflow-hidden border border-gray-200">
-            <div class="bg-gray-50 p-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800"><i class="fas fa-robot text-indigo-600 mr-2"></i>AI Assistant</h2>
-                <p class="text-xs text-gray-500">Enter a natural language command or alias to begin.</p>
-            </div>
+        <div class="flex flex-col lg:flex-row gap-6 h-[32rem]">
             
-            <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4 bg-gray-50 h-96">
-                <div class="flex items-start">
-                    <div class="bg-indigo-100 text-indigo-800 p-3 rounded-lg rounded-tl-none max-w-[85%] text-sm shadow-sm">
-                        Hello! I am your Intelligent Orchestrator. What workflow would you like to run today? (e.g., "Run SALES-DAILY-9AM")
+            <div class="w-full lg:w-1/3 bg-white rounded-xl shadow-lg flex flex-col overflow-hidden border border-gray-200">
+                <div class="bg-gray-50 p-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-robot text-indigo-600 mr-2"></i>AI Assistant</h2>
+                </div>
+                
+                <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4 bg-gray-50">
+                    <div class="flex items-start">
+                        <div class="bg-indigo-100 text-indigo-900 p-3 rounded-xl rounded-tl-none max-w-[85%] text-sm shadow-sm border border-indigo-200">
+                            <strong>System Online.</strong><br>
+                            I am your Intelligent Orchestrator. What automated workflow would you like to run today?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white border-t border-gray-200">
+                    <div class="flex space-x-2">
+                        <input type="text" id="userInput" class="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm shadow-inner" placeholder="Enter natural language command...">
+                        <button onclick="sendCommand()" id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg transition-all shadow-md">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-gray-200">
-                <div class="flex space-x-2">
-                    <input type="text" id="userInput" class="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Type your instruction here...">
-                    <button onclick="sendCommand()" id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+            <div class="w-full lg:w-2/3 flex flex-col gap-6 h-full">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-0">
+                    <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-gray-800 uppercase"><i class="fas fa-code text-indigo-600 mr-2"></i>Validated DAG Schema</h2>
+                        <span id="schemaBadge" class="px-2 py-1 text-xs font-bold rounded bg-gray-200 text-gray-600">Awaiting Input</span>
+                    </div>
+                    <div class="p-4 bg-[#1e1e1e] flex-grow overflow-auto rounded-b-xl">
+                        <pre id="schemaOutput" class="text-green-400 text-sm font-mono whitespace-pre-wrap">Waiting for AI...</pre>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-0">
+                    <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-gray-800 uppercase"><i class="fas fa-server text-indigo-600 mr-2"></i>Prefect Engine</h2>
+                    </div>
+                    <div class="p-4 bg-[#0d1117] flex-grow overflow-auto rounded-b-xl">
+                        <pre id="executionOutput" class="text-gray-300 text-sm font-mono whitespace-pre-wrap">System idle...</pre>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="w-full md:w-2/3 flex flex-col gap-6">
-            
-            <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col h-1/2">
-                <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-gray-800"><i class="fas fa-code text-indigo-600 mr-2"></i>Validated DAG Schema (JSON)</h2>
-                    <span id="schemaBadge" class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600">Awaiting Input</span>
-                </div>
-                <div class="p-4 bg-gray-900 flex-grow overflow-auto rounded-b-xl">
-                    <pre id="schemaOutput" class="text-green-400 text-sm font-mono whitespace-pre-wrap">Waiting for AI generation...</pre>
-                </div>
+        <div class="w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div class="bg-gray-800 p-3 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-sm font-bold text-white uppercase tracking-wide"><i class="fas fa-database text-blue-400 mr-2"></i>SQLite Operational Audit Trail</h2>
+                <button onclick="fetchLogs()" class="text-xs text-gray-300 hover:text-white"><i class="fas fa-sync-alt mr-1"></i>Refresh DB</button>
             </div>
-
-            <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col h-1/2">
-                <div class="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-gray-800"><i class="fas fa-server text-indigo-600 mr-2"></i>Prefect Execution Engine</h2>
-                </div>
-                <div class="p-4 bg-gray-100 flex-grow overflow-auto rounded-b-xl">
-                    <pre id="executionOutput" class="text-gray-700 text-sm font-mono whitespace-pre-wrap">System idle...</pre>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 text-xs uppercase border-b border-gray-200">
+                            <th class="p-3 font-semibold">Timestamp</th>
+                            <th class="p-3 font-semibold">User Command</th>
+                            <th class="p-3 font-semibold">Execution Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" class="text-sm divide-y divide-gray-100">
+                        <tr><td colspan="3" class="p-4 text-center text-gray-500">Loading database logs...</td></tr>
+                    </tbody>
+                </table>
             </div>
-
         </div>
     </main>
 
@@ -74,89 +103,93 @@
         const executionOutput = document.getElementById('executionOutput');
         const schemaBadge = document.getElementById('schemaBadge');
         const sendBtn = document.getElementById('sendBtn');
+        const logsTableBody = document.getElementById('logsTableBody');
 
-        // Allow 'Enter' key to send message
+        // Fetch logs on page load
+        window.onload = fetchLogs;
+
         userInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                sendCommand();
-            }
+            if (event.key === "Enter") { event.preventDefault(); sendCommand(); }
         });
 
         function appendMessage(sender, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = sender === 'user' ? 'flex items-end justify-end' : 'flex items-start';
-            
             const innerDiv = document.createElement('div');
-            if (sender === 'user') {
-                innerDiv.className = 'bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none max-w-[85%] text-sm shadow-md';
-            } else {
-                innerDiv.className = 'bg-indigo-100 text-indigo-800 p-3 rounded-lg rounded-tl-none max-w-[85%] text-sm shadow-sm';
-            }
-            innerDiv.textContent = text;
-            
+            innerDiv.className = sender === 'user' ? 'bg-indigo-600 text-white p-3 rounded-xl rounded-tr-none max-w-[85%] text-sm shadow-md' : 'bg-indigo-100 text-indigo-900 p-3 rounded-xl rounded-tl-none max-w-[85%] text-sm shadow-sm border border-indigo-200';
+            innerDiv.innerHTML = text; 
             msgDiv.appendChild(innerDiv);
             chatHistory.appendChild(msgDiv);
-            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+            chatHistory.scrollTop = chatHistory.scrollHeight; 
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                
+                if (data.audit_trail && data.audit_trail.length > 0) {
+                    logsTableBody.innerHTML = '';
+                    data.audit_trail.forEach(log => {
+                        // Color code the status
+                        const statusColor = log.execution_status.includes('Success') ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+                        
+                        logsTableBody.innerHTML += `
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="p-3 text-xs text-gray-500 font-mono">${log.timestamp}</td>
+                                <td class="p-3 text-gray-800">"${log.user_command}"</td>
+                                <td class="p-3 text-xs ${statusColor}">${log.execution_status}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    logsTableBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">No logs found in the database yet.</td></tr>';
+                }
+            } catch (error) {
+                console.error("Failed to fetch SQLite logs:", error);
+            }
         }
 
         async function sendCommand() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Update UI: User message
             appendMessage('user', text);
             userInput.value = '';
+            sendBtn.disabled = true; userInput.disabled = true;
             
-            // Disable input while processing
-            sendBtn.disabled = true;
-            userInput.disabled = true;
-            appendMessage('bot', 'Processing intent, applying RAG context, and validating schema...');
+            appendMessage('bot', '<i class="fas fa-spinner fa-spin mr-2"></i>Processing workflow...');
             
-            schemaOutput.textContent = "Loading...";
-            schemaBadge.className = "px-2 py-1 text-xs rounded bg-yellow-200 text-yellow-800";
-            schemaBadge.textContent = "Validating";
-            executionOutput.textContent = "Waiting for valid schema...";
-
             try {
                 const response = await fetch('/api/orchestrate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ instruction: text })
                 });
-
                 const data = await response.json();
 
                 if (response.ok && data.status === "success") {
-                    appendMessage('bot', data.message);
-                    
-                    // Display Schema
+                    appendMessage('bot', `<strong><i class="fas fa-check-circle text-green-600 mr-1"></i> Success:</strong> ${data.message}`);
                     schemaOutput.textContent = JSON.stringify(data.schema, null, 2);
-                    schemaBadge.className = "px-2 py-1 text-xs rounded bg-green-200 text-green-800";
-                    schemaBadge.textContent = "Valid";
-
-                    // Display Results
-                    executionOutput.textContent = "EXECUTION SUCCESSFUL\n\nLogs:\n" + JSON.stringify(data.results, null, 2);
+                    schemaBadge.className = "px-2 py-1 text-xs font-bold rounded bg-green-200 text-green-800";
+                    schemaBadge.textContent = "Validation Passed";
+                    executionOutput.textContent = "=== PREFECT DAG SUCCESS ===\n\n" + JSON.stringify(data.results, null, 2);
                 } else {
-                    appendMessage('bot', 'Error: ' + (data.message || 'Workflow execution failed.'));
-                    
+                    appendMessage('bot', `<strong><i class="fas fa-exclamation-triangle text-red-600 mr-1"></i> Blocked:</strong> ${data.message}`);
                     schemaOutput.textContent = JSON.stringify(data.schema || {}, null, 2);
-                    schemaOutput.classList.replace("text-green-400", "text-red-400");
-                    
-                    schemaBadge.className = "px-2 py-1 text-xs rounded bg-red-200 text-red-800";
+                    schemaBadge.className = "px-2 py-1 text-xs font-bold rounded bg-red-200 text-red-800";
                     schemaBadge.textContent = "Validation Failed";
-                    
-                    executionOutput.textContent = "EXECUTION BLOCKED.\nReason: " + (data.error_details || data.detail);
+                    executionOutput.textContent = "=== EXECUTION ABORTED ===\n\nReason: " + (data.error_details || data.detail);
                 }
             } catch (error) {
-                appendMessage('bot', 'System Error: Could not connect to backend API.');
-                schemaOutput.textContent = "Connection Error.";
-                executionOutput.textContent = error.message;
+                appendMessage('bot', '<strong>System Error</strong>');
             } finally {
-                // Re-enable input
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                userInput.focus();
+                sendBtn.disabled = false; userInput.disabled = false; userInput.focus();
+                const spinners = document.querySelectorAll('.fa-spinner');
+                spinners.forEach(s => s.parentElement.remove());
+                
+                // IMPORTANT: Automatically fetch the new DB logs right after the run finishes!
+                fetchLogs();
             }
         }
     </script>

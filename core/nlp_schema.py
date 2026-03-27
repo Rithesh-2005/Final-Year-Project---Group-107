@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -7,7 +9,7 @@ from langchain_core.prompts import PromptTemplate
 # Note: Ensure GOOGLE_API_KEY is set in your environment variables before running
 try:
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash", 
+        model="gemini-2.5-flash", 
         temperature=0.1, # Low temperature for deterministic, structured output
         max_retries=2
     )
@@ -23,13 +25,20 @@ def generate_schema_with_gemini(instruction: str) -> dict:
         return {"error": "LLM not initialized. Check API Key."}
 
     template = """
-    Convert the following natural language workflow instruction into a strict JSON schema.
+    You are an intelligent workflow orchestrator.
+    Convert the following instruction into a strict JSON DAG schema.
+    
+    CRITICAL RULES:
+    1. If 'Contextual Expansion' is provided, use it as a structural guide.
+    2. HOWEVER, if the 'User Intent' contains specific, custom instructions (like different databases, platforms like Azure/AWS, or specific filters), you MUST prioritize the User Intent. 
+    3. Do not hallucinate tasks from the Context that contradict the User Intent.
+
+    Instruction Data:
+    {instruction}
+
     The JSON MUST have a 'workflow_name' and a 'tasks' list. 
     Each task should have a 'task_id', 'action', and 'depends_on' (a list of task_ids it must wait for).
-    
-    Return ONLY valid JSON. Do not include markdown formatting like ```json or backticks.
-
-    Instruction: {instruction}
+    Return ONLY valid JSON. Do not include markdown formatting like ```json.
     """
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
