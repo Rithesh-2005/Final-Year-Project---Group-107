@@ -6,7 +6,7 @@ import os
 # Ensure your HF Token is set in your environment variables
 # os.environ["HUGGINGFACEHUB_API_TOKEN"] = "your_token_here"
 
-# UPDATE THIS to your new Hugging Face repository!
+# UPDATE to new Hugging Face repository!
 custom_model_repo = "your-username/workflow-orchestrator-mistral"
 
 # Initialize the LLM using your fine-tuned model
