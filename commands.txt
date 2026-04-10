@@ -1,0 +1,2 @@
+prefect server URL = 'https://crispy-sniffle-v449rrvj5wg26pgx-4200.app.github.dev/api'
+prefect server API = 'http://127.0.0.1:4200/api'
